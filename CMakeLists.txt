@@ -1,9 +1,8 @@
 cmake_minimum_required (VERSION 3.20)
 project (cosciev)
 
-set (CMAKE_CXX_STANDARD 23)
-
 add_library (cosciev INTERFACE)
+target_compile_features (cosciev INTERFACE cxx_std_23)
 target_sources (cosciev PRIVATE include/cosciev/async.hxx
                                 include/cosciev/context.hxx
                                 include/cosciev/event.hxx
