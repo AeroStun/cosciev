@@ -1,5 +1,5 @@
 /*
- *  cosciev.hxx
+ *  main.cxx
  *  Copyright 2025 AeroStun
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,15 @@
  *
  */
 
-#pragma once
+#include <cosciev/context.hxx>
+#include <cosciev/main.hxx>
 
-#include "cosciev/async.hxx"
-#include "cosciev/context.hxx"
-#include "cosciev/event.hxx"
-#include "cosciev/local_event.hxx"
-#include "cosciev/main.hxx"
+namespace cosciev {
+
+Main::~Main() noexcept { m_handle.destroy(); }
+
+[[noreturn]] void Main::run() const { m_handle.promise().context().run(); }
+
+} // namespace cosciev
+
+int main(int argc, char** argv) { co_main(argc, argv).run(); }

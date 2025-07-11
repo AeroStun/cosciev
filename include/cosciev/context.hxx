@@ -21,6 +21,7 @@
 #include <cassert>
 
 #include <chrono>
+#include <utility>
 
 #include <nvscievent.h>
 
@@ -30,7 +31,6 @@ namespace cosciev {
 
 struct Context {
     ::NvSciEventLoopService* m_loop_service = nullptr;
-    bool m_done = false;
 
     Context() {
         const auto error = ::NvSciEventLoopServiceCreateSafe(1uz, nullptr, &m_loop_service);
@@ -44,19 +44,16 @@ struct Context {
         }
     }
 
-    [[nodiscard]] LocalEvent make_event() {
+    [[nodiscard]] LocalEvent make_event() const {
         LocalEvent local_event;
         m_loop_service->EventService.CreateLocalEvent(&m_loop_service->EventService, &local_event.m_local_event);
         return local_event;
     }
 
-    void run(std::chrono::microseconds timeout = std::chrono::microseconds{100'000}) {
-        while (!m_done)
-            m_loop_service->WaitForMultipleEventsExt(&m_loop_service->EventService, nullptr, 0uz, timeout.count(),
-                                                     nullptr);
+    [[noreturn]] void run() const {
+        m_loop_service->WaitForMultipleEventsExt(&m_loop_service->EventService, nullptr, 0uz, -1, nullptr);
+        std::unreachable();
     }
-
-    void shutdown() { m_done = true; }
 };
 
 } // namespace cosciev
