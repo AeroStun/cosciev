@@ -44,6 +44,8 @@ struct Context {
         }
     }
 
+    [[nodiscard]] constexpr operator NvSciEventService*() const& noexcept { return &m_loop_service->EventService; }
+
     [[nodiscard]] LocalEvent make_event() const {
         LocalEvent local_event;
         m_loop_service->EventService.CreateLocalEvent(&m_loop_service->EventService, &local_event.m_local_event);

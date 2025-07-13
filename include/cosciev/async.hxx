@@ -18,8 +18,10 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 
+#include <concepts>
 #include <coroutine>
 #include <optional>
 #include <utility>
@@ -29,6 +31,7 @@ namespace cosciev {
 template <class T>
 struct Async {
   private:
+    struct PromiseStorage;
     struct Promise;
     friend Promise;
     using handle_type = std::coroutine_handle<Promise>;
@@ -39,7 +42,7 @@ struct Async {
 
     handle_type m_handle;
 
-    Async(const handle_type handle) noexcept : m_handle{handle} {}
+    [[nodiscard]] Async(const handle_type handle) noexcept : m_handle{handle} {}
 
   public:
     using promise_type = Promise;
@@ -50,8 +53,28 @@ struct Async {
 };
 
 template <class T>
-struct Async<T>::Promise {
+struct Async<T>::PromiseStorage {
     std::optional<T> m_value;
+
+    void return_value(T value) {
+        assert(!m_value);
+        m_value.emplace(std::move(value));
+    }
+};
+
+template <>
+struct Async<void>::PromiseStorage {
+    struct Unit final {};
+    std::optional<Unit> m_value;
+
+    void return_void() {
+        assert(!m_value);
+        m_value.emplace();
+    }
+};
+
+template <class T>
+struct Async<T>::Promise : Async<T>::PromiseStorage {
     std::coroutine_handle<> m_cont;
 
     [[nodiscard]] constexpr std::suspend_never initial_suspend() noexcept { return {}; }
@@ -69,11 +92,6 @@ struct Async<T>::Promise {
     [[nodiscard]] Async<T> get_return_object() { return {std::coroutine_handle<Promise>::from_promise(*this)}; }
 
     void unhandled_exception() { std::abort(); }
-
-    void return_value(T value) {
-        assert(!m_value);
-        m_value.emplace(std::move(value));
-    }
 };
 
 template <class T>
@@ -82,7 +100,12 @@ struct Async<T>::Awaiter {
 
     [[nodiscard]] bool await_ready() const noexcept { return m_handle.promise().m_value.has_value(); }
     void await_suspend(auto cont) const noexcept { m_handle.promise().m_cont = cont; }
-    [[nodiscard]] T await_resume() {
+    constexpr void await_resume() const noexcept
+        requires std::same_as<T, void>
+    {}
+    [[nodiscard]] T await_resume()
+        requires(not std::same_as<T, void>)
+    {
         auto& opt = m_handle.promise().m_value;
         assert(opt);
         return std::move(*opt);

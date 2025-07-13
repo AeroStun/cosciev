@@ -52,8 +52,11 @@ struct EventAwaiter {
     constexpr void await_resume() const noexcept {}
 };
 
-struct Event {
-    ::NvSciEventNotifier* m_notifier{};
+struct EventNotifier {
+    ::NvSciEventNotifier* m_notifier = nullptr;
+
+    [[nodiscard]] constexpr operator ::NvSciEventNotifier*() const& noexcept { return m_notifier; }
+    [[nodiscard]] constexpr operator ::NvSciEventNotifier*&() & noexcept { return m_notifier; }
 
     EventAwaiter operator co_await() const { return {m_notifier}; }
 };
